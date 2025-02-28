@@ -68,9 +68,10 @@ func (s *Service[T]) NewConnection(ctx context.Context, conn net.Conn, metadata 
 	metadata.Destination = request.Destination
 
 	userFlow := s.userFlow[user]
-	if request.Flow == FlowVision && request.Command == vmess.NetworkUDP {
+	requestFlow := request.Flow
+	if requestFlow == FlowVision && request.Command == vmess.NetworkUDP {
 		return E.New(FlowVision, " flow does not support UDP")
-	} else if request.Flow != userFlow {
+	} else if request.Flow != userFlow && requestFlow != "" {
 		return E.New("flow mismatch: expected ", flowName(userFlow), ", but got ", flowName(request.Flow))
 	}
 
@@ -78,7 +79,7 @@ func (s *Service[T]) NewConnection(ctx context.Context, conn net.Conn, metadata 
 		return s.handler.NewPacketConnection(ctx, &serverPacketConn{ExtendedConn: bufio.NewExtendedConn(conn), destination: request.Destination}, metadata)
 	}
 	responseConn := &serverConn{ExtendedConn: bufio.NewExtendedConn(conn), writer: bufio.NewVectorisedWriter(conn)}
-	switch userFlow {
+	switch requestFlow {
 	case FlowVision:
 		conn, err = NewVisionConn(responseConn, conn, request.UUID, s.logger)
 		if err != nil {
@@ -87,7 +88,7 @@ func (s *Service[T]) NewConnection(ctx context.Context, conn net.Conn, metadata 
 	case "":
 		conn = responseConn
 	default:
-		return E.New("unknown flow: ", userFlow)
+		return E.New("unknown flow: ", requestFlow)
 	}
 	switch request.Command {
 	case vmess.CommandTCP:
