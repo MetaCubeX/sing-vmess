@@ -339,7 +339,7 @@ func (s *Service[U]) NewConnection(ctx context.Context, conn net.Conn, metadata 
 		return err
 	}
 	if !legacyProtocol && requestBuffer.Len() > 0 {
-		reader = bufio.NewCachedReader(reader, requestBuffer)
+		reader = bufio.NewCachedReader(reader, requestBuffer.ToOwned())
 	}
 	reader = CreateReader(reader, nil, requestBodyKey, requestBodyNonce, requestBodyKey, requestBodyNonce, security, option)
 	if option&RequestOptionChunkStream != 0 && command == CommandTCP || command == CommandMux {
