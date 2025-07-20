@@ -3,8 +3,8 @@ module github.com/metacubex/sing-vmess
 go 1.20
 
 require (
-	github.com/gofrs/uuid/v5 v5.3.0
-	github.com/metacubex/sing v0.5.3
+	github.com/gofrs/uuid/v5 v5.3.2
+	github.com/metacubex/sing v0.5.4
 	golang.org/x/crypto v0.31.0
 )
 
