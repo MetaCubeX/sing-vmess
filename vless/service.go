@@ -170,6 +170,31 @@ type serverPacketConn struct {
 	N.ExtendedConn
 	responseWritten bool
 	destination     M.Socksaddr
+	readWaitOptions N.ReadWaitOptions
+}
+
+func (c *serverPacketConn) InitializeReadWaiter(options N.ReadWaitOptions) (needCopy bool) {
+	c.readWaitOptions = options
+	return false
+}
+
+func (c *serverPacketConn) WaitReadPacket() (buffer *buf.Buffer, destination M.Socksaddr, err error) {
+	var packetLen uint16
+	err = binary.Read(c.ExtendedConn, binary.BigEndian, &packetLen)
+	if err != nil {
+		return
+	}
+
+	buffer = c.readWaitOptions.NewPacketBuffer()
+	_, err = buffer.ReadFullFrom(c.ExtendedConn, int(packetLen))
+	if err != nil {
+		buffer.Release()
+		return
+	}
+	c.readWaitOptions.PostReturn(buffer)
+
+	destination = c.destination
+	return
 }
 
 func (c *serverPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
