@@ -78,16 +78,12 @@ func NewVisionConn(conn net.Conn, tlsConn net.Conn, userUUID [16]byte, logger lo
 	if !loaded {
 		return nil, E.New("vision: not a valid supported TLS connection: ", reflect.TypeOf(tlsConn))
 	}
-	input, _ := reflectType.FieldByName("input")
-	rawInput, _ := reflectType.FieldByName("rawInput")
-	return &VisionConn{
-		Conn:     conn,
-		reader:   bufio.NewChunkReader(conn, xrayChunkSize),
-		writer:   bufio.NewVectorisedWriter(conn),
-		input:    (*bytes.Reader)(unsafe.Add(reflectPointer, input.Offset)),
-		rawInput: (*bytes.Buffer)(unsafe.Add(reflectPointer, rawInput.Offset)),
-		netConn:  netConn,
-		logger:   logger,
+	c := &VisionConn{
+		Conn:    conn,
+		reader:  bufio.NewChunkReader(conn, xrayChunkSize),
+		writer:  bufio.NewVectorisedWriter(conn),
+		netConn: netConn,
+		logger:  logger,
 
 		userUUID:               userUUID,
 		numberOfPacketToFilter: 8,
@@ -97,7 +93,15 @@ func NewVisionConn(conn net.Conn, tlsConn net.Conn, userUUID [16]byte, logger lo
 		withinPaddingBuffers:   true,
 		remainingContent:       -1,
 		remainingPadding:       -1,
-	}, nil
+	}
+	if input, ok := reflectType.FieldByName("input"); ok {
+		c.input = (*bytes.Reader)(unsafe.Add(reflectPointer, input.Offset))
+	}
+	if rawInput, ok := reflectType.FieldByName("rawInput"); ok {
+		c.rawInput = (*bytes.Buffer)(unsafe.Add(reflectPointer, rawInput.Offset))
+	}
+
+	return c, nil
 }
 
 func (c *VisionConn) Read(p []byte) (n int, err error) {
@@ -146,18 +150,21 @@ func (c *VisionConn) Read(p []byte) (n int, err error) {
 				c.withinPaddingBuffers = false
 				c.directRead = true
 
-				inputBuffer, err := io.ReadAll(c.input)
-				if err != nil {
-					return 0, err
-				}
-				buffers = append(buffers, buf.As(inputBuffer))
-
-				rawInputBuffer, err := io.ReadAll(c.rawInput)
-				if err != nil {
-					return 0, err
+				if c.input != nil {
+					inputBuffer, err := io.ReadAll(c.input)
+					if err != nil {
+						return 0, err
+					}
+					buffers = append(buffers, buf.As(inputBuffer))
 				}
 
-				buffers = append(buffers, buf.As(rawInputBuffer))
+				if c.rawInput != nil {
+					rawInputBuffer, err := io.ReadAll(c.rawInput)
+					if err != nil {
+						return 0, err
+					}
+					buffers = append(buffers, buf.As(rawInputBuffer))
+				}
 
 				c.logger.Trace("XtlsRead readV")
 			} else if c.currentCommand == commandPaddingContinue {
