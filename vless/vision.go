@@ -392,3 +392,33 @@ func (c *VisionConn) NeedAdditionalReadDeadline() bool {
 func (c *VisionConn) Upstream() any {
 	return c.Conn
 }
+
+func (c *VisionConn) ReaderPossiblyReplaceable() bool {
+	return c.withinPaddingBuffers || c.numberOfPacketToFilter > 0 || c.remainingReader != nil
+}
+
+func (c *VisionConn) ReaderReplaceable() bool {
+	return c.directRead && c.remainingReader == nil
+}
+
+func (c *VisionConn) UpstreamReader() any {
+	if c.ReaderReplaceable() {
+		return c.netConn
+	}
+	return c.Conn
+}
+
+func (c *VisionConn) WriterPossiblyReplaceable() bool {
+	return c.isPadding
+}
+
+func (c *VisionConn) WriterReplaceable() bool {
+	return c.directWrite
+}
+
+func (c *VisionConn) UpstreamWriter() any {
+	if c.WriterReplaceable() {
+		return c.netConn
+	}
+	return c.Conn
+}
