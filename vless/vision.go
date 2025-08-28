@@ -153,6 +153,7 @@ func (c *VisionConn) Read(p []byte) (n int, err error) {
 
 				if c.input != nil {
 					inputBuffer, err := io.ReadAll(c.input)
+					*c.input = bytes.Reader{} // full reset
 					if err != nil {
 						return 0, err
 					}
@@ -161,6 +162,7 @@ func (c *VisionConn) Read(p []byte) (n int, err error) {
 
 				if c.rawInput != nil {
 					rawInputBuffer, err := io.ReadAll(c.rawInput)
+					*c.rawInput = bytes.Buffer{} // full reset
 					if err != nil {
 						return 0, err
 					}
