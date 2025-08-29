@@ -362,7 +362,7 @@ func (s *Service[U]) NewConnection(ctx context.Context, conn net.Conn, metadata 
 	case CommandUDP:
 		return s.handler.NewPacketConnection(ctx, &serverPacketConn{rawConn, metadata.Destination}, metadata)
 	case CommandMux:
-		return HandleMuxConnection(ctx, &serverConn{rawConn}, s.handler)
+		return HandleMuxConnection(ctx, &serverConn{rawConn}, metadata, s.handler)
 	default:
 		return E.New("unknown command: ", command)
 	}

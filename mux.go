@@ -19,10 +19,11 @@ import (
 	N "github.com/metacubex/sing/common/network"
 )
 
-func HandleMuxConnection(ctx context.Context, conn net.Conn, handler Handler) error {
+func HandleMuxConnection(ctx context.Context, conn net.Conn, metadata M.Metadata, handler Handler) error {
 	ctx, cancel := context.WithCancelCause(ctx)
 	session := &serverSession{
 		ctx:          ctx,
+		metadata:     metadata,
 		conn:         conn,
 		directWriter: bufio.NewExtendedWriter(conn),
 		handler:      handler,
@@ -38,6 +39,7 @@ func HandleMuxConnection(ctx context.Context, conn net.Conn, handler Handler) er
 
 type serverSession struct {
 	ctx          context.Context
+	metadata     M.Metadata
 	conn         net.Conn
 	directWriter N.ExtendedWriter
 	handler      Handler
@@ -142,6 +144,7 @@ func (c *serverSession) recv() error {
 					pipeIn,
 					c,
 				}, M.Metadata{
+					Source:      c.metadata.Source,
 					Destination: destination,
 				})
 			} else {
@@ -151,6 +154,7 @@ func (c *serverSession) recv() error {
 					session:     c,
 					destination: destination,
 				}, M.Metadata{
+					Source:      c.metadata.Source,
 					Destination: destination,
 				})
 			}
